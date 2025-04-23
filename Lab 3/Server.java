@@ -29,35 +29,33 @@ public class Server {
                 }
             } catch (Exception e) {
                 // TODO: handle exception
+                System.out.println("Couldn't create Client Handler Thread");
             }
 
         }).start();
 
-         new Thread(() -> {
+        new Thread(() -> {
             try {
                 while (true) {
                     System.out.println("0. Exit");
                     System.out.println("1. View available users: ");
                     String read = sc.nextLine();
-                    System.out.println(read);
                     if (read.equals("0")) {
                         System.out.println("Quitting...");
                         break;
-                    }
-                    else if(read.equals("1")){
+                    } else if (read.equals("1")) {
                         for (int i = 0; i < clientThreads.size(); i++) {
                             System.out.println(i + 1 + ". " + clientThreads.get(i).name);
                         }
                         try {
                             read = sc.nextLine();
                             selectedIndex = Integer.parseInt(read);
-                            var temp = clientThreads.get(Integer.parseInt(read)-1);
-                            System.out.println(selectedIndex);
+                            var temp = clientThreads.get(Integer.parseInt(read) - 1);
                             System.out.println("Chatting With " + temp.name);
                             System.out.println("Enter 'quit' to exit the application.");
-    
+
                             new Thread(() -> {
-    
+
                                 try {
                                     while (true) {
                                         String str = temp.in.readUTF();
@@ -67,48 +65,35 @@ public class Server {
                                         if (str.strip().equals(""))
                                             continue;
                                         temp.messages.add(str);
-                                        System.out.println(str);
+                                        System.out.println(temp.name+": "+str);
                                     }
                                 } catch (Exception e) {
-                                    // TODO: handle exception
                                     System.out.println("boink");
                                 }
-    
+
                             }).start();
-    
-                            // new Thread(() -> {
-    
-                                try {
-                                    while (true) {
-                                        String str = sc.nextLine();
-                                        if (str.equals("quit")) {
-                                            break;
-                                        }
-                                        if (str.strip().equals(""))
-                                            continue;
-                                        // temp.messages.add(str);
-                                        // System.out.println(str);
-                                        // if (index == Server.selectedIndex) {
-                                        // System.out.println(str);
-                                        // }
-    
-                                        temp.out.writeUTF(str);
+
+                            try {
+                                while (true) {
+                                    String str = sc.nextLine();
+                                    if (str.equals("quit")) {
+                                        break;
                                     }
-                                } catch (Exception e) {
-                                    // TODO: handle exception
+                                    if (str.strip().equals(""))
+                                        continue;
+
+                                    temp.out.writeUTF(str);
                                 }
-    
-                            // }).start();
-                            
-    
+                            } catch (Exception e) {
+                                System.out.println("Couldn't send to client");
+
+                            }
+
                         } catch (Exception e) {
                             // TODO: handle exception
                             System.out.println("Not a valid integer");
-                            continue;
                         }
                     }
-
-                
 
                 }
             } catch (Exception e) {
