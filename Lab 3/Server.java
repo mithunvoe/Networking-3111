@@ -37,13 +37,22 @@ public class Server {
         new Thread(() -> {
             try {
                 while (true) {
+                    System.out.print("\033[H\033[2J");
+                    System.out.flush();
+
                     System.out.println("0. Exit");
                     System.out.println("1. View available users: ");
                     String read = sc.nextLine();
                     if (read.equals("0")) {
                         System.out.println("Quitting...");
+                        System.exit(0);
                         break;
                     } else if (read.equals("1")) {
+                        if (clientThreads.isEmpty())
+                            continue;
+                        System.out.print("\033[H\033[2J");
+                        System.out.flush();
+                        System.out.println("Available Users:");
                         for (int i = 0; i < clientThreads.size(); i++) {
                             System.out.println(i + 1 + ". " + clientThreads.get(i).name);
                         }
@@ -51,13 +60,15 @@ public class Server {
                             read = sc.nextLine();
                             selectedIndex = Integer.parseInt(read);
                             var temp = clientThreads.get(Integer.parseInt(read) - 1);
+                            System.out.print("\033[H\033[2J");
+                            System.out.flush();
+
                             System.out.println("Chatting With " + temp.name);
                             System.out.println("Enter 'quit' to exit the application.");
-
-                            new Thread(() -> {
-
+                            boolean[] shouldExit = {false};
+                            Thread t = new Thread(() -> {
                                 try {
-                                    while (true) {
+                                    while (!shouldExit[0]) {
                                         String str = temp.in.readUTF();
                                         if (str.equals("quit")) {
                                             break;
@@ -65,18 +76,19 @@ public class Server {
                                         if (str.strip().equals(""))
                                             continue;
                                         temp.messages.add(str);
-                                        System.out.println(temp.name+": "+str);
+                                        System.out.println(temp.name + ": " + str);
                                     }
                                 } catch (Exception e) {
                                     System.out.println("boink");
                                 }
-
-                            }).start();
+                            });
+                            t.start();
 
                             try {
                                 while (true) {
                                     String str = sc.nextLine();
                                     if (str.equals("quit")) {
+                                        shouldExit[0] = true; // Signal the upper thread to exit
                                         break;
                                     }
                                     if (str.strip().equals(""))
@@ -86,8 +98,8 @@ public class Server {
                                 }
                             } catch (Exception e) {
                                 System.out.println("Couldn't send to client");
-
                             }
+                            t.interrupt(); // Interrupt the thread to help it exit if blocked in readUTF
 
                         } catch (Exception e) {
                             // TODO: handle exception
@@ -98,6 +110,7 @@ public class Server {
                 }
             } catch (Exception e) {
                 // TODO: handle exception
+                System.out.println("Error in i/o thread");
             }
 
         }).start();
