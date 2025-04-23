@@ -141,27 +141,6 @@ class ClientHandlerThread extends Thread {
         try {
             name = in.readUTF();
             System.out.println(name + " joined the server!");
-            // while (true) {
-            // // String str = in.readUTF();
-            // // if (str.equals("quit")) {
-            // // break;
-            // // }
-            // // if (str.strip().equals(""))
-            // // continue;
-            // // messages.add(str);
-            // // if (index == Server.selectedIndex) {
-            // // System.out.println(str);
-            // // }
-            // // System.out.println(name + ": " + str);
-            // // for (var clientThread : Server.clientThreads) {
-            // // if (clientThread.s.getPort() != s.getPort()) {
-            // // clientThread.out.writeUTF(name + ": " + str);
-            // // }
-            // // }
-            // // break;
-            // }
-            // Server.clientThreads.remove(this);
-            // System.out.println(name + " cholegelo amader chere :\"\"(");
 
         } catch (Exception e) {
             System.out.println("Client thread e jahmela");
