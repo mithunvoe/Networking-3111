@@ -16,7 +16,7 @@ public class Client {
         System.out.print("Enter your name: ");
         name = sc.nextLine();
         
-        Socket s = new Socket("192.168.20.167", 1812);
+        Socket s = new Socket("localhost", 1812);
         DataOutputStream out = new DataOutputStream(s.getOutputStream());
         DataInputStream in = new DataInputStream(s.getInputStream());
 

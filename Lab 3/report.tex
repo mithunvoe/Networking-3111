@@ -1,0 +1,411 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{float}
+
+% Code listing setup
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.95}
+
+\lstdefinestyle{javastyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\lstset{style=javastyle}
+
+\title{\textbf{Design of a Chat Application Using\\Multi-threaded Socket Programming}}
+\author{[Your Name] \\ [Your ID]}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Introduction}
+Socket programming represents a fundamental mechanism for network communication, enabling data exchange between different processes over a network. At its core, a socket is an endpoint for communication that allows processes to send and receive data, whether on the same machine or across different networked devices. Socket programming provides the interface between application software and the underlying network protocols, facilitating client-server architecture where a server process listens for connection requests from clients.
+
+Multi-threaded socket programming extends this concept by incorporating concurrent execution through multiple threads. In a multi-threaded environment, separate threads handle different aspects of the program simultaneously, allowing for parallel processing of tasks. This approach is particularly valuable in network applications where multiple clients need to be served concurrently without blocking one another.
+
+For a chat application, multi-threaded socket programming is essential for several reasons:
+
+\begin{itemize}
+    \item \textbf{Concurrent Client Handling:} It allows the server to manage multiple client connections simultaneously, enabling many users to participate in the chat without waiting for others to complete their interactions.
+    
+    \item \textbf{Real-time Communication:} By dedicating separate threads to handle incoming and outgoing messages, the application can provide real-time communication without delays caused by sequential processing.
+    
+    \item \textbf{Improved Responsiveness:} The user interface remains responsive as message processing occurs in background threads, preventing the application from freezing during network operations.
+    
+    \item \textbf{Scalability:} Multi-threaded design enables the chat application to scale efficiently with an increasing number of users, as each new connection can be managed by a new thread.
+\end{itemize}
+
+Our implementation demonstrates these principles through a Java-based chat application that utilizes sockets for network communication and multiple threads to handle concurrent user interactions.
+
+\section{Objectives}
+The primary objectives of this laboratory exercise are:
+
+\begin{enumerate}
+    \item To implement a functional chat application using multi-threaded socket programming in Java, demonstrating client-server architecture.
+    
+    \item To explore the benefits of multi-threading in network applications by enabling simultaneous message sending and receiving capabilities.
+    
+    \item To develop a practical understanding of network communication principles and thread synchronization in distributed systems.
+\end{enumerate}
+
+\section{Design Details}
+The chat application follows a client-server architecture with multi-threading to handle concurrent operations. The design incorporates the following key components:
+
+\subsection{Server Design}
+\begin{enumerate}
+    \item \textbf{Socket Initialization:} The server initializes a ServerSocket on a specified port (1812) and listens for incoming client connections.
+    
+    \item \textbf{Client Connection Handling:} Upon receiving a connection, the server creates a new ClientHandlerThread for each client, storing them in a vector for management.
+    
+    \item \textbf{Server Console Interface:} A separate thread manages the server console interface, allowing the server administrator to:
+    \begin{itemize}
+        \item View connected users
+        \item Select a specific user to chat with
+        \item Send messages to the selected user
+        \item Exit the application
+    \end{itemize}
+    
+    \item \textbf{Message Management:} Each client handler maintains its own message history and facilitates communication between the server and its assigned client.
+\end{enumerate}
+
+\subsection{Client Design}
+\begin{enumerate}
+    \item \textbf{Connection Establishment:} The client connects to the server using the server's IP address and port number, then sends its username.
+    
+    \item \textbf{Dual-Threaded Operation:}
+    \begin{itemize}
+        \item Input Thread: Handles user input and sends messages to the server
+        \item Output Thread: Continuously listens for incoming messages from the server and displays them
+    \end{itemize}
+    
+    \item \textbf{User Interface:} Simple console-based interface that displays incoming messages from the server and allows users to input messages.
+\end{enumerate}
+
+\subsection{Communication Flow}
+\begin{figure}[H]
+    \centering
+    % Insert your flowchart here
+    % \includegraphics[width=0.8\textwidth]{flowchart.png}
+    \caption{Communication Flow Diagram of the Chat Application}
+    \label{fig:flowchart}
+\end{figure}
+
+The communication flow follows these steps:
+\begin{enumerate}
+    \item The server starts and listens for client connections.
+    \item A client connects to the server and sends their username.
+    \item The server creates a dedicated handler thread for the client.
+    \item The server administrator can view the list of connected clients and select one to chat with.
+    \item Messages from the server to the selected client are sent via the client's output stream.
+    \item Messages from clients to the server are received via the client handler thread's input stream.
+    \item Both the server and client use separate threads for sending and receiving messages to enable concurrent operations.
+\end{enumerate}
+
+\section{Implementation}
+The implementation consists of two main Java classes: Server.java and Client.java. Below are the key components of each:
+
+\subsection{Server Implementation}
+
+\begin{lstlisting}[language=Java, caption=Server.java - Main Server Class]
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.Scanner;
+import java.util.Vector;
+
+public class Server {
+    public static Vector<ClientHandlerThread> clientThreads = new Vector<>();
+    public static int selectedIndex = 0;
+
+    public static void main(String[] args) throws Exception {
+        ServerSocket ss = new ServerSocket(1812);
+        System.out.println("Created Server Socket at port '1812'");
+        Scanner sc = new Scanner(System.in);
+        
+        // Thread for accepting client connections
+        new Thread(() -> {
+            try {
+                while (true) {
+                    Socket s = ss.accept();
+                    DataInputStream in = new DataInputStream(s.getInputStream());
+                    DataOutputStream out = new DataOutputStream(s.getOutputStream());
+                    ClientHandlerThread thread = new ClientHandlerThread(s, in, out, clientThreads.size());
+                    clientThreads.add(thread);
+                    thread.start();
+                }
+            } catch (Exception e) {
+                System.out.println("Couldn't create Client Handler Thread");
+            }
+        }).start();
+
+        // Thread for server console interface
+        new Thread(() -> {
+            try {
+                while (true) {
+                    System.out.print("\033[H\033[2J");
+                    System.out.flush();
+                    System.out.println("0. Exit");
+                    System.out.println("1. View available users: ");
+                    String read = sc.nextLine();
+                    
+                    if (read.equals("0")) {
+                        System.out.println("Quitting...");
+                        System.exit(0);
+                        break;
+                    } else if (read.equals("1")) {
+                        // User management and chat functionality
+                        // ...
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println("Error in i/o thread");
+            }
+        }).start();
+    }
+}
+
+class ClientHandlerThread extends Thread {
+    public Socket s;
+    DataInputStream in;
+    DataOutputStream out;
+    String name;
+    int index;
+    Vector<String> messages = new Vector();
+
+    public ClientHandlerThread(Socket s, DataInputStream in, DataOutputStream out, int index) {
+        this.s = s;
+        this.in = in;
+        this.out = out;
+        this.index = index;
+    }
+
+    @Override
+    public void run() {
+        super.run();
+        try {
+            name = in.readUTF();
+            System.out.println(name + " joined the server!");
+        } catch (Exception e) {
+            System.out.println("Client thread exception");
+        }
+    }
+}
+\end{lstlisting}
+
+\subsection{Client Implementation}
+
+\begin{lstlisting}[language=Java, caption=Client.java - Main Client Class]
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.net.Socket;
+import java.util.Scanner;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+public class Client {
+    public static void main(String[] args) throws Exception {
+        System.out.print("\033[H\033[2J");
+        System.out.flush();
+        Scanner sc = new Scanner(System.in);
+        
+        String name = "";
+        System.out.print("Enter your name: ");
+        name = sc.nextLine();
+        
+        Socket s = new Socket("192.168.20.167", 1812);
+        DataOutputStream out = new DataOutputStream(s.getOutputStream());
+        DataInputStream in = new DataInputStream(s.getInputStream());
+
+        System.out.println("Joined to server at ip: " + "192.168.20.167" + " and port " + "1812 as "+name);
+        System.out.print("\033[H\033[2J");
+        System.out.flush();
+        System.out.println("Welcome " + name + "!");
+        out.writeUTF(name);
+        
+        AtomicBoolean running = new AtomicBoolean(true);
+        
+        // Thread for sending messages
+        new Thread(() -> {
+            try {
+                while (true) {
+                    String message = sc.nextLine();
+                    out.writeUTF(message);
+                    if (message.equals("quit")) {
+                        running.set(false);
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                // Handle exception
+            }
+        }).start();
+
+        // Thread for receiving messages
+        new Thread(() -> {
+            try {
+                while (running.get()) {
+                    String message = in.readUTF();
+                    System.out.print("\033[31mServer: \033[0m");
+                    System.out.println(message);
+                }
+            } catch (Exception e) {
+                // Handle exception
+            }
+        }).start();
+    }
+}
+\end{lstlisting}
+
+\section{Result Analysis}
+The implemented chat application successfully demonstrates the principles of multi-threaded socket programming, allowing for real-time communication between a server and multiple clients.
+
+\subsection{Server Output}
+\begin{figure}[H]
+    \centering
+    % Insert your server output screenshot here
+    % \includegraphics[width=0.8\textwidth]{server_output.png}
+    \caption{Server Console Interface}
+    \label{fig:server_output}
+\end{figure}
+
+The server console displays:
+\begin{itemize}
+    \item Server initialization message
+    \item Notification when new clients connect
+    \item Menu for selecting operations (view users, exit)
+    \item Chat interface when communicating with a selected client
+\end{itemize}
+
+\subsection{Client Output}
+\begin{figure}[H]
+    \centering
+    % Insert your client output screenshot here
+    % \includegraphics[width=0.8\textwidth]{client_output.png}
+    \caption{Client Console Interface}
+    \label{fig:client_output}
+\end{figure}
+
+The client console displays:
+\begin{itemize}
+    \item Connection confirmation message
+    \item Welcome message with the user's name
+    \item Incoming messages from the server (highlighted in color)
+    \item Ability to send messages to the server
+\end{itemize}
+
+\subsection{Multi-client Scenario}
+When multiple clients connect simultaneously, the server successfully manages all connections through separate threads. This allows each client to communicate with the server independently, demonstrating the effectiveness of the multi-threaded approach.
+
+\section{Discussion}
+\subsection{Comparison of Basic vs. Multi-threaded Socket Programming}
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|p{5cm}|p{5cm}|}
+        \hline
+        \textbf{Basic Socket Programming} & \textbf{Multi-threaded Socket Programming} \\
+        \hline
+        Processes one client at a time & Can handle multiple clients simultaneously \\
+        \hline
+        Blocks while waiting for I/O operations & Continues processing while waiting for I/O \\
+        \hline
+        Sequential execution model & Parallel execution model \\
+        \hline
+        Simple implementation & More complex implementation requiring synchronization \\
+        \hline
+        Limited scalability & Better scalability with increasing clients \\
+        \hline
+        Poor performance for multiple clients & Improved performance for multiple clients \\
+        \hline
+    \end{tabular}
+    \caption{Comparison between Basic and Multi-threaded Socket Programming}
+    \label{tab:comparison}
+\end{table}
+
+\subsection{Drawbacks of Basic Socket Programming}
+Basic socket programming suffers from several limitations:
+\begin{itemize}
+    \item \textbf{Blocking Nature:} In basic socket programming, operations such as accept(), read(), and write() are blocking, causing the entire application to wait until the operation completes.
+    
+    \item \textbf{Sequential Processing:} Each client must be served sequentially, leading to delays as the number of clients increases.
+    
+    \item \textbf{Poor Responsiveness:} The application becomes unresponsive during network operations, providing a poor user experience.
+    
+    \item \textbf{Limited Throughput:} Only one client can be processed at a time, severely limiting the application's throughput.
+    
+    \item \textbf{Inability to Handle Concurrent Operations:} Basic socket programming cannot handle simultaneous sending and receiving of messages.
+\end{itemize}
+
+\subsection{Overcoming Drawbacks with Multi-threading}
+Our multi-threaded implementation addresses these limitations by:
+\begin{itemize}
+    \item \textbf{Concurrent Client Handling:} Each client connection is managed by a separate thread, allowing multiple clients to be served simultaneously.
+    
+    \item \textbf{Non-blocking Operations:} While one thread may block on I/O operations, other threads continue to execute, maintaining application responsiveness.
+    
+    \item \textbf{Parallel Processing:} Message sending and receiving occur in parallel threads, enabling real-time bidirectional communication.
+    
+    \item \textbf{Improved Throughput:} The server can process multiple client requests concurrently, significantly increasing throughput.
+    
+    \item \textbf{Enhanced User Experience:} Users experience minimal latency as their messages are processed independently of other users' activities.
+\end{itemize}
+
+\subsection{Learning Outcomes}
+Through this project, we learned:
+\begin{itemize}
+    \item The practical implementation of socket programming concepts in Java
+    \item Thread management and synchronization techniques
+    \item Handling concurrent network operations
+    \item Designing scalable client-server architectures
+    \item Managing shared resources across multiple threads
+    \item Error handling in distributed applications
+\end{itemize}
+
+\subsection{Challenges Faced}
+During implementation, we encountered several challenges:
+\begin{itemize}
+    \item \textbf{Thread Synchronization:} Ensuring proper synchronization to prevent race conditions when accessing shared resources.
+    
+    \item \textbf{Connection Management:} Properly handling client disconnections and cleaning up resources.
+    
+    \item \textbf{User Interface Complexity:} Balancing between a functional console interface and managing threading for I/O operations.
+    
+    \item \textbf{Error Handling:} Implementing robust error handling across multiple threads to maintain application stability.
+    
+    \item \textbf{Message Routing:} Ensuring messages were correctly routed between the server and the intended client.
+\end{itemize}
+
+\section{Conclusion}
+This multi-threaded socket programming chat application successfully demonstrates the advantages of concurrent programming in network applications. By implementing separate threads for client handling, message sending, and message receiving, we created a responsive and scalable chat system capable of supporting multiple simultaneous users.
+
+The implementation highlights how multi-threading overcomes the limitations of basic socket programming, particularly in scenarios requiring real-time communication between multiple parties. The project provided valuable hands-on experience with network programming concepts, thread management, and distributed application design.
+
+Future improvements could include implementing private messaging between clients, adding graphical user interfaces, implementing message encryption for security, and enhancing error recovery mechanisms.
+
+\end{document}

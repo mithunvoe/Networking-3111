@@ -83,7 +83,7 @@ public class Server {
                                             System.out.println(temp.name +": "+ str);
                                     }
                                 } catch (Exception e) {
-                                    System.out.println("boink");
+                                    System.out.println("Unknown error happenned");
                                 }
                             });
                             t.start();
