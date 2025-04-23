@@ -9,17 +9,19 @@ public class Client {
 
         System.out.print("\033[H\033[2J");
         System.out.flush();
-        System.out.println("sdfsdfsdf:".split(":").length);
-        Socket s = new Socket("192.168.20.167", 1812);
-        System.out.println("Joined to server at ip: " + "192.168.20.167" + " and port " + "1812");
         Scanner sc = new Scanner(System.in);
-
-        DataOutputStream out = new DataOutputStream(s.getOutputStream());
-        DataInputStream in = new DataInputStream(s.getInputStream());
+        
         String name = "";
-
+        
         System.out.print("Enter your name: ");
         name = sc.nextLine();
+        
+        Socket s = new Socket("192.168.20.167", 1812);
+        DataOutputStream out = new DataOutputStream(s.getOutputStream());
+        DataInputStream in = new DataInputStream(s.getInputStream());
+
+        System.out.println("sdfsdfsdf:".split(":").length);
+        System.out.println("Joined to server at ip: " + "192.168.20.167" + " and port " + "1812 as "+name);
         System.out.print("\033[H\033[2J");
         System.out.flush();
         System.out.println("Welcome " + name + "!");
@@ -44,7 +46,13 @@ public class Client {
             try {
                 while (running.get()) {
                     String message = in.readUTF();
-                    System.out.println("Server: " + message);
+                    // System.out.println("\\033[31mServer:\\033[0m" );
+                    System.out.print("\033[31mServer: \033[0m");
+                    System.out.println(message); // This prints the escape code itself, without color
+
+
+                    // System.out.println("");
+
                 }
             } catch (Exception e) {
                 // TODO: handle exception

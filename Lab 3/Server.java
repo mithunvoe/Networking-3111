@@ -11,6 +11,7 @@ public class Server {
     public static int selectedIndex = 0;
 
     public static void main(String[] args) throws Exception {
+
         ServerSocket ss = new ServerSocket(1812);
         System.out.println("Created Server Socket at port '1812'");
         Scanner sc = new Scanner(System.in);
@@ -28,7 +29,6 @@ public class Server {
                     thread.start();
                 }
             } catch (Exception e) {
-                // TODO: handle exception
                 System.out.println("Couldn't create Client Handler Thread");
             }
 
@@ -65,9 +65,12 @@ public class Server {
 
                             System.out.println("Chatting With " + temp.name);
                             System.out.println("Enter 'quit' to exit the application.");
-                            boolean[] shouldExit = {false};
+                            boolean[] shouldExit = { false };
                             Thread t = new Thread(() -> {
                                 try {
+                                    for (var message : temp.messages) {
+                                        System.out.println(message);
+                                    }
                                     while (!shouldExit[0]) {
                                         String str = temp.in.readUTF();
                                         if (str.equals("quit")) {
@@ -75,8 +78,9 @@ public class Server {
                                         }
                                         if (str.strip().equals(""))
                                             continue;
-                                        temp.messages.add(str);
-                                        System.out.println(temp.name + ": " + str);
+                                        temp.messages.add(temp.name+": "+str);
+                                        if (!shouldExit[0])
+                                            System.out.println(temp.name +": "+ str);
                                     }
                                 } catch (Exception e) {
                                     System.out.println("boink");
@@ -93,7 +97,7 @@ public class Server {
                                     }
                                     if (str.strip().equals(""))
                                         continue;
-
+                                    temp.messages.add("Server: "+str);
                                     temp.out.writeUTF(str);
                                 }
                             } catch (Exception e) {
@@ -102,14 +106,12 @@ public class Server {
                             t.interrupt(); // Interrupt the thread to help it exit if blocked in readUTF
 
                         } catch (Exception e) {
-                            // TODO: handle exception
                             System.out.println("Not a valid integer");
                         }
                     }
 
                 }
             } catch (Exception e) {
-                // TODO: handle exception
                 System.out.println("Error in i/o thread");
             }
 
